@@ -15,7 +15,7 @@
   clj-orient.query
   (:refer-clojure :exclude [load])
   (:use (clj-orient core))
-  (:import (com.orientechnologies.orient.core.query.nativ ONativeSynchQuery OQueryContextNativeSchema)
+  (:import ; (com.orientechnologies.orient.core.query.nativ ONativeSynchQuery OQueryContextNativeSchema)
     com.orientechnologies.orient.core.sql.query.OSQLSynchQuery
     com.orientechnologies.orient.core.sql.OCommandSQL
     com.orientechnologies.orient.core.db.ODatabaseComplex
@@ -50,44 +50,6 @@
     (list 'fn '[%])
     eval))
 
-(defn ->native-query
-  "Takes either a function or a hash-map and returns an ONativeSynchQuery object.
-
-When provided a filtering function, you will have to make your own query using the available Java methods
-for the OQueryContextNativeSchema instance you will be given.
-
-When provided a hash-map, matching will be done like this:
-{:field1 val1
- :field2 [<command> val2]}
-
-e.g.
-{:country \"USA\",
- :age [:$>= 20]
- :last-name [:$not= \"Smith\"]}
-
-Available operators:
-:$=, :$not=, :$<, :$<=, :$>, :$>=, :$like, :$matches
-
-When not provided a command, it works like :$= (.eq)."
-  [kclass fn-kvs]
-  (let [f (if (fn? fn-kvs)
-            fn-kvs
-            (if (empty? fn-kvs)
-              (fn [_] true)
-              (map->fn fn-kvs)))]
-    (proxy [com.orientechnologies.orient.core.query.nativ.ONativeSynchQuery]
-      [*db*, (kw->oclass-name kclass), (OQueryContextNativeSchema.)]
-      (filter [*record*] (f *record*)))))
-
-(defn native-query
-  "Executes a native query that filters results by the class of the documents (as a keyword) and a filtering function.
-It takes either an ONativeSynchQuery object, a function or a hash-map.
-Returns results as a lazy-seq of CljODoc objects."
-  [klass query & [fetch-plan]]
-  (let [query (if (instance? ONativeSynchQuery query) query (->native-query klass query))
-        query (if fetch-plan (.setFetchPlan query fetch-plan) query)]
-    (map #(CljODoc. %) (.query *db* query (to-array nil)))))
-
 ; <API Graph Traversals>
 (defn- $var "Wraps the OCommandContext object to mediate access to the context variables."
   [ctx k]
@@ -110,7 +72,7 @@ Returns results as a lazy-seq of CljODoc objects."
     (.target (map #(if (orid? %) % (% :#rid)) target))
     (.limit (or limit 0))
     (.predicate (reify OCommandPredicate
-                  (evaluate [self odoc ctx]
+                  (evaluate [self odoc current-result ctx]    ; iCurrentResult is recent addition to the signature, ignore for now.
                     (pred (wrap-odoc odoc) (partial $var ctx)))))
     (->> (map wrap-odoc))))
 
