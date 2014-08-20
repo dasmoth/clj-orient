@@ -240,7 +240,7 @@ The exception will be rethrown so the programmer can catch it."
 (defn document
   "Returns a newly created document given the document's class (as a keyword).
 It can optionally take a Clojure hash-map to set the document's properties."
-  ([kclass] (CljODoc. (ODocument. *db* (kw->oclass-name kclass))))
+  ([kclass] (CljODoc. (ODocument. (kw->oclass-name kclass))))
   ([kclass properties] (merge (document kclass) properties)))
 
 (def +intents+ {:massive-read (OIntentMassiveRead.), :massive-write (OIntentMassiveInsert.)})
